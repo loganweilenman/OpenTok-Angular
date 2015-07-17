@@ -23,9 +23,9 @@ angular.module('opentok', [])
                 init: function(apiKey, sessionId, token, cb) {
                     this.session = TB.initSession(apiKey, sessionId);
 
-                    var new = true;
+                    var hasListeners = true;
 
-                    if (new) {
+                    if (hasListeners) {
                         OTSession.session.on({
                             sessionConnected: function() {
                                 OTSession.publishers.forEach(function(publisher) {
@@ -59,7 +59,7 @@ angular.module('opentok', [])
                             }
                         });
 
-                        new = false;
+                        hasListeners = false;
                     }
 
                     this.session.connect(token, function(err) {
