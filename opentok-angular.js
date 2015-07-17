@@ -16,58 +16,58 @@ angular.module('opentok', [])
     })
     .factory('OTSession', ['TB', '$rootScope',
         function(TB, $rootScope) {
-            var OTSession = {
-                streams: [],
-                connections: [],
-                publishers: [],
-                init: function(apiKey, sessionId, token, cb) {
-                    this.session = TB.initSession(apiKey, sessionId);
+            var hasListeners,
+                OTSession = {
+                    streams: [],
+                    connections: [],
+                    publishers: [],
+                    init: function(apiKey, sessionId, token, cb) {
+                        this.session = TB.initSession(apiKey, sessionId);
 
-                    var hasListeners = true;
+                        if (!hasListeners) {
+                            console.log("hit");
+                            OTSession.session.on({
+                                sessionConnected: function() {
+                                    OTSession.publishers.forEach(function(publisher) {
+                                        OTSession.session.publish(publisher);
+                                    });
+                                },
+                                streamCreated: function(event) {
+                                    $rootScope.$apply(function() {
+                                        OTSession.streams.push(event.stream);
+                                    });
+                                },
+                                streamDestroyed: function(event) {
+                                    $rootScope.$apply(function() {
+                                        OTSession.streams.splice(OTSession.streams.indexOf(event.stream), 1);
+                                    });
+                                },
+                                sessionDisconnected: function() {
+                                    $rootScope.$apply(function() {
+                                        OTSession.streams.splice(0, OTSession.streams.length);
+                                    });
+                                },
+                                connectionCreated: function(event) {
+                                    $rootScope.$apply(function() {
+                                        OTSession.connections.push(event.connection);
+                                    });
+                                },
+                                connectionDestroyed: function(event) {
+                                    $rootScope.$apply(function() {
+                                        OTSession.connections.splice(OTSession.connections.indexOf(event.connection), 1);
+                                    });
+                                }
+                            });
 
-                    if (hasListeners) {
-                        OTSession.session.on({
-                            sessionConnected: function() {
-                                OTSession.publishers.forEach(function(publisher) {
-                                    OTSession.session.publish(publisher);
-                                });
-                            },
-                            streamCreated: function(event) {
-                                $rootScope.$apply(function() {
-                                    OTSession.streams.push(event.stream);
-                                });
-                            },
-                            streamDestroyed: function(event) {
-                                $rootScope.$apply(function() {
-                                    OTSession.streams.splice(OTSession.streams.indexOf(event.stream), 1);
-                                });
-                            },
-                            sessionDisconnected: function() {
-                                $rootScope.$apply(function() {
-                                    OTSession.streams.splice(0, OTSession.streams.length);
-                                });
-                            },
-                            connectionCreated: function(event) {
-                                $rootScope.$apply(function() {
-                                    OTSession.connections.push(event.connection);
-                                });
-                            },
-                            connectionDestroyed: function(event) {
-                                $rootScope.$apply(function() {
-                                    OTSession.connections.splice(OTSession.connections.indexOf(event.connection), 1);
-                                });
-                            }
+                            hasListeners = true;
+                        }
+
+                        this.session.connect(token, function(err) {
+                            if (cb) cb(err, OTSession.session);
                         });
-
-                        hasListeners = false;
+                        this.trigger('init');
                     }
-
-                    this.session.connect(token, function(err) {
-                        if (cb) cb(err, OTSession.session);
-                    });
-                    this.trigger('init');
-                }
-            };
+                };
             TB.$.eventing(OTSession);
             return OTSession;
         }
